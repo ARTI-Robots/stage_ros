@@ -51,7 +51,9 @@
 
 #include <std_srvs/Empty.h>
 
-#include "tf/transform_broadcaster.h"
+#include <tf/transform_broadcaster.h>
+
+#include <stage_ros/fiducials.h>
 
 #define USAGE "stageros <worldfile>"
 #define IMAGE "image"
@@ -61,6 +63,7 @@
 #define BASE_SCAN "base_scan"
 #define BASE_POSE_GROUND_TRUTH "base_pose_ground_truth"
 #define CMD_VEL "cmd_vel"
+#define FIDUCIALS "fiducials"
 
 // Our node
 class StageNode
@@ -77,6 +80,7 @@ private:
     std::vector<Stg::ModelCamera *> cameramodels;
     std::vector<Stg::ModelRanger *> lasermodels;
     std::vector<Stg::ModelPosition *> positionmodels;
+    std::vector<Stg::ModelFiducial *> fiducialmodels;
 
     //a structure representing a robot inthe simulator
     struct StageRobot
@@ -96,6 +100,8 @@ private:
         std::vector<ros::Publisher> laser_pubs; //multiple lasers
 
         ros::Subscriber cmdvel_sub; //one cmd_vel subscriber
+        
+        ros::Publisher feducual_publisher_;
     };
 
     std::vector<StageRobot const *> robotmodels_;
@@ -238,6 +244,8 @@ StageNode::ghfunc(Stg::Model* mod, StageNode* node)
     }
     if (dynamic_cast<Stg::ModelCamera *>(mod))
         node->cameramodels.push_back(dynamic_cast<Stg::ModelCamera *>(mod));
+  if (dynamic_cast<Stg::ModelFiducial *>(mod))
+    node->fiducialmodels.push_back(dynamic_cast<Stg::ModelFiducial *>(mod));         
 }
 
 
@@ -354,6 +362,8 @@ StageNode::SubscribeModels()
         new_robot->odom_pub = n_.advertise<nav_msgs::Odometry>(mapName(ODOM, r, static_cast<Stg::Model*>(new_robot->positionmodel)), 10);
         new_robot->ground_truth_pub = n_.advertise<nav_msgs::Odometry>(mapName(BASE_POSE_GROUND_TRUTH, r, static_cast<Stg::Model*>(new_robot->positionmodel)), 10);
         new_robot->cmdvel_sub = n_.subscribe<geometry_msgs::Twist>(mapName(CMD_VEL, r, static_cast<Stg::Model*>(new_robot->positionmodel)), 10, boost::bind(&StageNode::cmdvelReceived, this, r, _1));
+        new_robot->feducual_publisher_ = n_.advertise<stage_ros::fiducials>(mapName(FIDUCIALS, r, static_cast<Stg::Model*>(new_robot->positionmodel)), 10);
+        
 
         for (size_t s = 0;  s < new_robot->lasermodels.size(); ++s)
         {
@@ -428,6 +438,23 @@ StageNode::WorldCallback()
     for (size_t r = 0; r < this->robotmodels_.size(); ++r)
     {
         StageRobot const * robotmodel = this->robotmodels_[r];
+    
+		std::vector<Stg::ModelFiducial::Fiducial > & fiducials =  this->fiducialmodels[r]->GetFiducials ();
+		stage_ros::fiducials fiducial_msg_to_send;
+		fiducial_msg_to_send.observations.resize(fiducials.size());
+		for(unsigned int i=0; i<fiducials.size(); i++)
+		{
+			fiducial_msg_to_send.observations[i].id = fiducials[i].id;
+			fiducial_msg_to_send.observations[i].bearing = fiducials[i].bearing;
+			fiducial_msg_to_send.observations[i].range = fiducials[i].range;
+		}
+
+		if (fiducials.size() > 0)
+		{
+      		fiducial_msg_to_send.header.frame_id = mapName("base_laser_link", r, static_cast<Stg::Model*>(robotmodel->positionmodel));
+			fiducial_msg_to_send.header.stamp = sim_time;
+			robotmodel->feducual_publisher_.publish(fiducial_msg_to_send);
+		}
 
         //loop on the laser devices for the current robot
         for (size_t s = 0; s < robotmodel->lasermodels.size(); ++s)

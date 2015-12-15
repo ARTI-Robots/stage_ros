@@ -10,11 +10,23 @@ find_package(catkin REQUIRED
     std_msgs
     std_srvs
     tf
+    message_generation
 )
 
 find_package(Boost REQUIRED COMPONENTS system thread)
 
 find_package(stage REQUIRED)
+
+add_message_files(
+  FILES
+  fiducial.msg 
+  fiducials.msg
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 include_directories(
   ${catkin_INCLUDE_DIRS}
