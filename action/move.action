@@ -1,6 +1,6 @@
 # Define the goal
 string id
-# posestamped array trajectory?
+geometry_msgs/PoseStamped[] trajectory
 ---
 # Define the result
 uint32 response

@@ -42,6 +42,7 @@ generate_messages(
   DEPENDENCIES
   std_msgs
   actionlib_msgs
+  geometry_msgs
 )
 
 include_directories(
@@ -56,6 +57,8 @@ catkin_package()
 # Declare a cpp executable
 add_executable(stageros src/stageros.cpp
                         src/object_server.cpp)
+
+add_dependencies(stageros stage_ros_generate_messages_cpp)
 
 set(${PROJECT_NAME}_extra_libs "")
 if(UNIX AND NOT APPLE)
