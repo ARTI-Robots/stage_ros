@@ -14,17 +14,41 @@ ObjectServer::ObjectServer(ros::NodeHandle nh, StageNode* stage) :
   create_action_server_.start();
   move_action_server_.start();
   remove_action_server_.start();
+
+  double control_frequence = 30.0;
+  trajectory_timer_ = node_.createTimer(ros::Duration(1.0/control_frequence), &ObjectServer::timerTrajectories, this, false );
 }
 
 ObjectServer::~ObjectServer()
 {
+  std::map<std::string,stage_ros::Object*>::iterator it;
+  for (it = objects_.begin(); it != objects_.end(); ++it)
+    delete it->second;
+
+  objects_.clear();
+}
+
+void ObjectServer::timerTrajectories(const ros::TimerEvent& e)
+{
+  std::map<std::string,stage_ros::Object*>::iterator it;
+  for (it = objects_.begin(); it != objects_.end(); ++it)
+  {
+    geometry_msgs::PoseStamped spose = it->second->getPose(ros::Time::now());
+
+    Stg::Pose pose;
+    pose.x = spose.pose.position.x;
+    pose.y = spose.pose.position.y;
+    stage_->setModelPose(it->first, pose);
+  }
 }
 
 void ObjectServer::executeCreate(const stage_ros::createGoalConstPtr& goal)
 {
   stage_ros::createResult res;
 
-  Stg::Model *model = new Stg::ModelPosition(stage_->world, NULL, "tmp");
+  // TODO create object with respect to yaml configuration, otherwise error!
+
+  Stg::Model *model = new Stg::ModelPosition(stage_->world, NULL, goal->type);
   model->SetColor(Stg::Color::blue);
   Stg::Geom geom;
   geom.size.x = 1.0;
@@ -37,18 +61,6 @@ void ObjectServer::executeCreate(const stage_ros::createGoalConstPtr& goal)
   stage_ros::Object* object = new stage_ros::Object(id, goal->type);
   objects_[id] = object;
   create_action_server_.setSucceeded(res);
-
-//    if(!hector_move_to_planner_->makePlan(start_pose, goal->goto_point, res.move_to_path.poses))
-//    {
-//        move_to_server_.setAborted(res, "exporation of hector failed");
-//        return;
-//    }
-//
-//    if(move_to_server_.isPreemptRequested())
-//    {
-//        move_to_server_.setPreempted();
-//        return;
-//    }
 }
 
 void ObjectServer::executeMove(const stage_ros::moveGoalConstPtr& goal)
@@ -57,21 +69,14 @@ void ObjectServer::executeMove(const stage_ros::moveGoalConstPtr& goal)
 
   std::string id = goal->id;
 
-  Stg::Size size;
-  size.x = 2.0;
-  size.y = 2.0;
-  size.z = 2.0;
+  if ( objects_.find(id) == objects_.end() )
+  {
+    //not found
+    res.response = -2;
+    move_action_server_.setAborted(res);
+  }
 
   objects_[id]->setTrajectory(goal->trajectory);
-
-  geometry_msgs::PoseStamped spose = objects_[id]->getPose(ros::Time::now());
-
-  Stg::Pose pose;
-  pose.x = spose.pose.position.x;
-  pose.y = spose.pose.position.y;
-
-  stage_->setModelPose(id, pose);
-//  stage_->setModelSize(id, size);
   res.response = 0;
 
   move_action_server_.setSucceeded(res);
