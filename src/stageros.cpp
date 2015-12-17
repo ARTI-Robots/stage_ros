@@ -99,18 +99,18 @@ StageNode::addModel(Stg::Model *model) {
 
 void StageNode::removeModel(const std::string& name)
 {
-    for (size_t r = 0; r < this->positionmodels.size(); r++)
-    {
-        if(positionmodels[r]->TokenStr().compare(name) == 0)
-        {
 
-            Stg::Geom geom = positionmodels[r]->GetGeom();
-            geom.pose.x = 1000.0;
-            geom.pose.y = 1000.0;
-            positionmodels[r]->SetGeom(geom);
-            break;
-        }
-    }
+    Stg::Pose pose;
+    pose.x = 1000.0;
+    pose.y = 1000.0;
+
+    Stg::Size size;
+    size.x = 0.0;
+    size.y = 0.0;
+    size.z = 0.0;
+
+    setModelPose(name, pose);
+    setModelSize(name, size);
 }
 
 
