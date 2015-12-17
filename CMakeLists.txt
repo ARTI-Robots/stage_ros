@@ -21,6 +21,12 @@ add_message_files(
   FILES
   fiducial.msg 
   fiducials.msg
+  WheelCmdVel.msg
+)
+
+add_service_files(
+  FILES
+  SetRobotPose.srv
 )
 
 generate_messages(

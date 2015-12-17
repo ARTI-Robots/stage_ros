@@ -54,6 +54,8 @@
 #include <tf/transform_broadcaster.h>
 
 #include <stage_ros/fiducials.h>
+#include <stage_ros/SetRobotPose.h>
+#include <stage_ros/WheelCmdVel.h>
 
 #define USAGE "stageros <worldfile>"
 #define IMAGE "image"
@@ -64,6 +66,8 @@
 #define BASE_POSE_GROUND_TRUTH "base_pose_ground_truth"
 #define CMD_VEL "cmd_vel"
 #define FIDUCIALS "fiducials"
+#define WHEEL_CMD_VEL "wheel_cmd_vel"
+#define SET_POSE "set_robot_pose"
 
 // Our node
 class StageNode
@@ -85,6 +89,8 @@ private:
     //a structure representing a robot inthe simulator
     struct StageRobot
     {
+        double wheele_radius;
+        double wheele_base;
         //stage related models
         Stg::ModelPosition* positionmodel; //one position
         std::vector<Stg::ModelCamera *> cameramodels; //multiple cameras per position
@@ -102,6 +108,10 @@ private:
         ros::Subscriber cmdvel_sub; //one cmd_vel subscriber
         
         ros::Publisher feducual_publisher_;
+        
+        ros::Subscriber wheelcmdvel_subs_;
+        
+        ros::ServiceServer set_robot_pose_srvs_;
     };
 
     std::vector<StageRobot const *> robotmodels_;
@@ -169,6 +179,12 @@ public:
 
     // Service callback for soft reset
     bool cb_reset_srv(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
+    
+    // Message callback for a Wheel Vel message, which set velocities of the left and right wheel.
+    void wheelcmdvelCB(int idx, const boost::shared_ptr<stage_ros::WheelCmdVel const>& msg);
+    
+    // Service callback for SetRobotPose, which set the robot to a pose.
+    bool setRobotPoseCB(int idx, stage_ros::SetRobotPose::Request &request, stage_ros::SetRobotPose::Response &response);
 
     // The main simulator object
     Stg::World* world;
@@ -248,9 +264,6 @@ StageNode::ghfunc(Stg::Model* mod, StageNode* node)
     node->fiducialmodels.push_back(dynamic_cast<Stg::ModelFiducial *>(mod));         
 }
 
-
-
-
 bool
 StageNode::cb_reset_srv(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
 {
@@ -262,8 +275,6 @@ StageNode::cb_reset_srv(std_srvs::Empty::Request& request, std_srvs::Empty::Resp
   return true;
 }
 
-
-
 void
 StageNode::cmdvelReceived(int idx, const boost::shared_ptr<geometry_msgs::Twist const>& msg)
 {
@@ -272,6 +283,33 @@ StageNode::cmdvelReceived(int idx, const boost::shared_ptr<geometry_msgs::Twist 
                                         msg->linear.y,
                                         msg->angular.z);
     this->base_last_cmd = this->sim_time;
+}
+
+void
+StageNode::wheelcmdvelCB(int idx, const boost::shared_ptr<stage_ros::WheelCmdVel const>& msg)
+{
+    boost::mutex::scoped_lock lock(msg_lock);
+
+    double vel_left = msg->left * robotmodels_[idx]->wheele_radius;
+    double vel_right = msg->right * robotmodels_[idx]->wheele_radius;
+
+    double lin_x = (vel_left + vel_right) / 2.0;
+    double lin_y = 0.0;
+    double ang_z = (vel_right - vel_left) / robotmodels_[idx]->wheele_base;
+    this->positionmodels[idx]->SetSpeed(lin_x,
+                                        lin_y,
+                                        ang_z);
+    this->base_last_cmd = this->sim_time;
+}
+
+bool
+StageNode::setRobotPoseCB(int idx, stage_ros::SetRobotPose::Request &request, stage_ros::SetRobotPose::Response &response)
+{
+
+    Stg::Pose pose(request.x, request.y, 0.0, request.yaw);
+    this->positionmodels[idx]->SetPose(pose);
+
+    return true;
 }
 
 StageNode::StageNode(int argc, char** argv, bool gui, const char* fname, bool use_model_names)
@@ -337,6 +375,9 @@ StageNode::SubscribeModels()
         StageRobot* new_robot = new StageRobot;
         new_robot->positionmodel = this->positionmodels[r];
         new_robot->positionmodel->Subscribe();
+        
+        n_.param<double>("/wheele_radius", new_robot->wheele_radius, 0.075);
+        n_.param<double>("/wheel_base", new_robot->wheele_base, 0.3);
 
 
         for (size_t s = 0; s < this->lasermodels.size(); s++)
@@ -364,7 +405,10 @@ StageNode::SubscribeModels()
         new_robot->cmdvel_sub = n_.subscribe<geometry_msgs::Twist>(mapName(CMD_VEL, r, static_cast<Stg::Model*>(new_robot->positionmodel)), 10, boost::bind(&StageNode::cmdvelReceived, this, r, _1));
         new_robot->feducual_publisher_ = n_.advertise<stage_ros::fiducials>(mapName(FIDUCIALS, r, static_cast<Stg::Model*>(new_robot->positionmodel)), 10);
         
-
+        new_robot->wheelcmdvel_subs_ = n_.subscribe<stage_ros::WheelCmdVel>(mapName(WHEEL_CMD_VEL, r, static_cast<Stg::Model*>(new_robot->positionmodel)), 10, boost::bind(&StageNode::wheelcmdvelCB, this, r, _1));
+        
+        new_robot->set_robot_pose_srvs_ = n_.advertiseService<stage_ros::SetRobotPose::Request, stage_ros::SetRobotPose::Response>(mapName(SET_POSE, r, static_cast<Stg::Model*>(new_robot->positionmodel)), boost::bind(&StageNode::setRobotPoseCB, this, r, _1, _2));
+   
         for (size_t s = 0;  s < new_robot->lasermodels.size(); ++s)
         {
             if (new_robot->lasermodels.size() == 1)
