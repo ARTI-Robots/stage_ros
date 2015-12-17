@@ -61,6 +61,7 @@ private:
     std::vector<Stg::ModelRanger *> lasermodels;
     std::vector<Stg::ModelPosition *> positionmodels;
     std::vector<Stg::ModelFiducial *> fiducialmodels;
+    std::vector<Stg::Model *> othermodels;
 
     //a structure representing a robot inthe simulator
     struct StageRobot

@@ -93,7 +93,7 @@ StageNode::ghfunc(Stg::Model *mod, StageNode *node) {
 std::string
 StageNode::addModel(Stg::Model *model) {
     this->world->AddModel(model);
-    this->ghfunc(model, this);
+    this->othermodels.push_back(model);
     return model->TokenStr();
 }
 
@@ -116,11 +116,12 @@ void StageNode::removeModel(const std::string& name)
 
 Stg::Model* StageNode::getModel(const std::string& name)
 {
-    for (size_t r = 0; r < this->positionmodels.size(); r++) {
-        if (positionmodels[r]->TokenStr().compare(name) == 0) {
-            return positionmodels[r];
+    for (size_t r = 0; r < this->othermodels.size(); r++) {
+        if (othermodels[r]->TokenStr().compare(name) == 0) {
+            return othermodels[r];
         }
     }
+    ROS_ERROR("Trying to get model %s but it does not exist", name.c_str());
     return NULL;
 }
 

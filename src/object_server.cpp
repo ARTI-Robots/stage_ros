@@ -60,7 +60,7 @@ void ObjectServer::executeCreate(const stage_ros::createGoalConstPtr& goal)
 
   // TODO create object with respect to yaml configuration, otherwise error!
 
-  Stg::Model *model = new Stg::ModelPosition(stage_->world, NULL, goal->type);
+  Stg::Model *model = new Stg::Model(stage_->world, NULL, goal->type);
   model->SetColor(Stg::Color::blue);
   Stg::Geom geom;
   geom.size.x = 0.8;
