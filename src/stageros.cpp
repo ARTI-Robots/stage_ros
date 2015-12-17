@@ -24,6 +24,8 @@
 @htmlinclude manifest.html
 **/
 
+#include <stage_ros/stageros.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,7 +34,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <signal.h>
-
 
 // libstage
 #include <stage.hh>
@@ -54,6 +55,7 @@
 #include <tf/transform_broadcaster.h>
 
 #include <stage_ros/fiducials.h>
+#include <stage_ros/object_server.h>
 
 #define USAGE "stageros <worldfile>"
 #define IMAGE "image"
@@ -143,6 +145,8 @@ private:
     ros::Time base_last_globalpos_time;
     // Last published global pose of each robot
     std::vector<Stg::Pose> base_last_globalpos;
+
+    stage_ros::ObjectServer* object_server_;
 
 public:
     // Constructor; stage itself needs argc/argv.  fname is the .world file
@@ -310,6 +314,8 @@ StageNode::StageNode(int argc, char **argv, bool gui, const char *fname, bool us
     this->world->AddUpdateCallback((Stg::world_callback_t) s_update, this);
 
     this->world->ForEachDescendant((Stg::model_callback_t) ghfunc, this);
+
+    object_server_ = new stage_ros::ObjectServer(localn, this);
 }
 
 
