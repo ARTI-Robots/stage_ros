@@ -170,7 +170,15 @@ public:
     bool cb_reset_srv(std_srvs::Empty::Request &request, std_srvs::Empty::Response &response);
 
     //Add a model to the world
-    void addModel(Stg::Model *);
+    std::string addModel(Stg::Model *);
+
+    void removeModel(const std::string& name);
+
+    Stg::Model* getModel(const std::string& name);
+    Stg::Pose getModelPose(const std::string& name);
+    Stg::Pose setModelPose(const std::string& name, Stg::Pose pose);
+    Stg::Size getModelSize(const std::string& name);
+    Stg::Size setModelSize(const std::string& name, Stg::Size size);
 
     // The main simulator object
     Stg::World *world;
@@ -240,11 +248,68 @@ StageNode::ghfunc(Stg::Model *mod, StageNode *node) {
         node->fiducialmodels.push_back(dynamic_cast<Stg::ModelFiducial *>(mod));
 }
 
-void
+std::string
 StageNode::addModel(Stg::Model *model) {
     this->world->AddModel(model);
     this->ghfunc(model, this);
+    return model->TokenStr();
 }
+
+void StageNode::removeModel(const std::string& name)
+{
+    for (size_t r = 0; r < this->positionmodels.size(); r++)
+    {
+        if(positionmodels[r]->TokenStr().compare(name) == 0)
+        {
+
+            Stg::Geom geom = positionmodels[r]->GetGeom();
+            geom.pose.x = 1000.0;
+            geom.pose.y = 1000.0;
+            positionmodels[r]->SetGeom(geom);
+            break;
+        }
+    }
+}
+
+
+Stg::Model* StageNode::getModel(const std::string& name)
+{
+    for (size_t r = 0; r < this->positionmodels.size(); r++) {
+        if (positionmodels[r]->TokenStr().compare(name) == 0) {
+            return positionmodels[r];
+        }
+    }
+    return NULL;
+}
+
+Stg::Pose StageNode::getModelPose(const std::string& name)
+{
+    Stg::Model* model = getModel(name);
+    return model->GetGeom().pose;
+}
+
+Stg::Pose StageNode::setModelPose(const std::string& name, Stg::Pose pose)
+{
+    Stg::Model* model = getModel(name);
+    Stg::Geom geom = model->GetGeom();
+    geom.pose = pose;
+    model->SetGeom(geom);
+}
+
+Stg::Size StageNode::getModelSize(const std::string& name)
+{
+    Stg::Model* model = getModel(name);
+    return model->GetGeom().size;
+}
+
+Stg::Size StageNode::setModelSize(const std::string& name, Stg::Size size)
+{
+    Stg::Model* model = getModel(name);
+    Stg::Geom geom = model->GetGeom();
+    geom.size = size;
+    model->SetGeom(geom);
+}
+
 
 
 bool
@@ -310,6 +375,7 @@ StageNode::StageNode(int argc, char **argv, bool gui, const char *fname, bool us
     this->world->AddUpdateCallback((Stg::world_callback_t) s_update, this);
 
     this->world->ForEachDescendant((Stg::model_callback_t) ghfunc, this);
+
 }
 
 
