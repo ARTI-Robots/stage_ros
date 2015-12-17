@@ -1,5 +1,6 @@
 #include <stage_ros/object_server.h>
 #include <stage_ros/stageros.h>
+#include <tf/transform_datatypes.h>
 
 namespace stage_ros
 {
@@ -27,9 +28,9 @@ void ObjectServer::executeCreate(const stage_ros::createGoalConstPtr& goal)
   Stg::Model *model = new Stg::ModelPosition(stage_->world, NULL, "tmp");
   model->SetColor(Stg::Color::blue);
   Stg::Geom geom;
-  geom.size.x = 1.0;
-  geom.size.y = 1.0;
-  geom.size.z = 1.0;
+  geom.size.x = 0.8;
+  geom.size.y = 0.1;
+  geom.size.z = 0.3;
   model->SetGeom(geom);
   std::string id = stage_->addModel(model);
   res.id = id;
@@ -37,41 +38,32 @@ void ObjectServer::executeCreate(const stage_ros::createGoalConstPtr& goal)
   stage_ros::Object* object = new stage_ros::Object(id, goal->type);
   objects_[id] = object;
   create_action_server_.setSucceeded(res);
-
-//    if(!hector_move_to_planner_->makePlan(start_pose, goal->goto_point, res.move_to_path.poses))
-//    {
-//        move_to_server_.setAborted(res, "exporation of hector failed");
-//        return;
-//    }
-//
-//    if(move_to_server_.isPreemptRequested())
-//    {
-//        move_to_server_.setPreempted();
-//        return;
-//    }
 }
 
 void ObjectServer::executeMove(const stage_ros::moveGoalConstPtr& goal)
 {
   stage_ros::moveResult res;
-
   std::string id = goal->id;
-
-  Stg::Size size;
-  size.x = 2.0;
-  size.y = 2.0;
-  size.z = 2.0;
-
   objects_[id]->setTrajectory(goal->trajectory);
 
+  //Get latest pose value (by time)
   geometry_msgs::PoseStamped spose = objects_[id]->getPose(ros::Time::now());
 
+  //Set Coordinates
   Stg::Pose pose;
   pose.x = spose.pose.position.x;
   pose.y = spose.pose.position.y;
 
+  //Calculate rotation
+  geometry_msgs::Quaternion q = spose.pose.orientation;
+  tf::Quaternion quat(q.x, q.y, q.z, q.w);
+  tf::Matrix3x3 mat(quat);
+  double roll, pitch, yaw;
+  mat.getRPY(roll, pitch, yaw);
+  pose.a = yaw;
+
+  //Send the values to stage
   stage_->setModelPose(id, pose);
-//  stage_->setModelSize(id, size);
   res.response = 0;
 
   move_action_server_.setSucceeded(res);
