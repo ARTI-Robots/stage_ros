@@ -1,0 +1,8 @@
+# Define the goal
+string id
+# posestamped array trajectory?
+---
+# Define the result
+uint32 response
+---
+# Define a feedback message
