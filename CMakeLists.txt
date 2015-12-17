@@ -11,6 +11,8 @@ find_package(catkin REQUIRED
     std_srvs
     tf
     message_generation
+    actionlib
+    actionlib_msgs
 )
 
 find_package(Boost REQUIRED COMPONENTS system thread)
@@ -21,14 +23,27 @@ add_message_files(
   FILES
   fiducial.msg 
   fiducials.msg
+  WheelCmdVel.msg
+)
+
+add_service_files(
+  FILES
+  SetRobotPose.srv
+)
+
+add_action_files(
+   FILES
+   create.action
 )
 
 generate_messages(
   DEPENDENCIES
   std_msgs
+  actionlib_msgs
 )
 
 include_directories(
+  include
   ${catkin_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
   ${STAGE_INCLUDE_DIRS}
@@ -37,7 +52,9 @@ include_directories(
 catkin_package()
 
 # Declare a cpp executable
-add_executable(stageros src/stageros.cpp)
+add_executable(stageros src/stageros.cpp
+                        src/object_server.cpp)
+
 set(${PROJECT_NAME}_extra_libs "")
 if(UNIX AND NOT APPLE)
   set(${PROJECT_NAME}_extra_libs dl)
