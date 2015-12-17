@@ -1,5 +1,5 @@
-#ifndef OBJECT_SERVER
-#define OBJECT_SERVER
+#ifndef STAGE
+#define STAGE
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,7 +9,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <signal.h>
-
 
 // libstage
 #include <stage.hh>
@@ -32,6 +31,8 @@
 
 #include <stage_ros/fiducials.h>
 #include <stage_ros/object_server.h>
+#include <stage_ros/SetRobotPose.h>
+#include <stage_ros/WheelCmdVel.h>
 
 #define USAGE "stageros <worldfile>"
 #define IMAGE "image"
@@ -42,6 +43,8 @@
 #define BASE_POSE_GROUND_TRUTH "base_pose_ground_truth"
 #define CMD_VEL "cmd_vel"
 #define FIDUCIALS "fiducials"
+#define WHEEL_CMD_VEL "wheel_cmd_vel"
+#define SET_POSE "set_robot_pose"
 
 // Our node
 class StageNode {
@@ -60,7 +63,10 @@ private:
     std::vector<Stg::ModelFiducial *> fiducialmodels;
 
     //a structure representing a robot inthe simulator
-    struct StageRobot {
+    struct StageRobot
+    {
+        double wheele_radius;
+        double wheele_base;
         //stage related models
         Stg::ModelPosition *positionmodel; //one position
         std::vector<Stg::ModelCamera *> cameramodels; //multiple cameras per position
@@ -78,6 +84,10 @@ private:
         ros::Subscriber cmdvel_sub; //one cmd_vel subscriber
 
         ros::Publisher feducual_publisher_;
+
+        ros::Subscriber wheelcmdvel_subs_;
+
+        ros::ServiceServer set_robot_pose_srvs_;
     };
 
     std::vector<StageRobot const *> robotmodels_;
@@ -147,7 +157,13 @@ public:
     void cmdvelReceived(int idx, const boost::shared_ptr<geometry_msgs::Twist const> &msg);
 
     // Service callback for soft reset
-    bool cb_reset_srv(std_srvs::Empty::Request &request, std_srvs::Empty::Response &response);
+    bool cb_reset_srv(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
+
+    // Message callback for a Wheel Vel message, which set velocities of the left and right wheel.
+    void wheelcmdvelCB(int idx, const boost::shared_ptr<stage_ros::WheelCmdVel const>& msg);
+
+    // Service callback for SetRobotPose, which set the robot to a pose.
+    bool setRobotPoseCB(int idx, stage_ros::SetRobotPose::Request &request, stage_ros::SetRobotPose::Response &response);
 
     //Add a model to the world
     void addModel(Stg::Model *);
@@ -155,3 +171,5 @@ public:
     // The main simulator object
     Stg::World *world;
 };
+
+#endif  /* STAGE */

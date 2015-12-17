@@ -12,7 +12,7 @@
 #include <actionlib/server/simple_action_server.h>
 #include <stage_ros/createAction.h>
 
-//#include <stage_ros/stageros.h>
+class StageNode;
 
 namespace stage_ros
 {
@@ -34,4 +34,5 @@ class ObjectServer
 };
 
 }
+
 #endif  /* OBJECT_SERVER */

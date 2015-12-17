@@ -1,4 +1,5 @@
 #include <stage_ros/object_server.h>
+#include <stage_ros/stageros.h>
 
 namespace stage_ros
 {
