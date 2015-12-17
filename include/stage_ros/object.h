@@ -12,6 +12,8 @@ namespace stage_ros
           id_(id),
           type_(type)
         {
+          geometry_msgs::PoseStamped current_pose;
+          trajectory_.push_back(current_pose);
         }
 
         virtual ~Object() {}
@@ -24,14 +26,13 @@ namespace stage_ros
         geometry_msgs::PoseStamped getPose(ros::Time now)
         {
           int size = trajectory_.size();
-          geometry_msgs::PoseStamped current_pose;
+          geometry_msgs::PoseStamped current_pose = trajectory_.front();
+
           for(size_t i = 0; i < size ; ++i)
           {
             ros::Duration diff = trajectory_.at(i).header.stamp - now;
             if (diff < ros::Duration(0.0))
-            {
               current_pose = trajectory_.at(i);
-            }
           }
 
           return current_pose;

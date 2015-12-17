@@ -32,6 +32,8 @@ class ObjectServer
     ObjectServer(ros::NodeHandle nh, StageNode* stage);
     virtual ~ObjectServer();
 
+    void timerTrajectories(const ros::TimerEvent& e);
+
     void executeCreate(const stage_ros::createGoalConstPtr& goal);
     void executeMove(const stage_ros::moveGoalConstPtr& goal);
     void executeRemove(const stage_ros::removeGoalConstPtr& goal);
@@ -43,6 +45,7 @@ class ObjectServer
     MoveActionServer move_action_server_;
     RemoveActionServer remove_action_server_;
 
+    ros::Timer trajectory_timer_;
     std::map<std::string,stage_ros::Object*> objects_;
 };
 

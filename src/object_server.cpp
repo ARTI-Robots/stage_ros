@@ -15,17 +15,52 @@ ObjectServer::ObjectServer(ros::NodeHandle nh, StageNode* stage) :
   create_action_server_.start();
   move_action_server_.start();
   remove_action_server_.start();
+
+  double control_frequence = 30.0;
+  trajectory_timer_ = node_.createTimer(ros::Duration(1.0/control_frequence), &ObjectServer::timerTrajectories, this, false );
 }
 
 ObjectServer::~ObjectServer()
 {
+  std::map<std::string,stage_ros::Object*>::iterator it;
+  for (it = objects_.begin(); it != objects_.end(); ++it)
+    delete it->second;
+
+  objects_.clear();
+}
+
+void ObjectServer::timerTrajectories(const ros::TimerEvent& e)
+{
+  std::map<std::string,stage_ros::Object*>::iterator it;
+  for (it = objects_.begin(); it != objects_.end(); ++it)
+  {
+    geometry_msgs::PoseStamped spose = it->second->getPose(ros::Time::now());
+
+    //Set Coordinates
+    Stg::Pose pose;
+    pose.x = spose.pose.position.x;
+    pose.y = spose.pose.position.y;
+
+    //Calculate rotation
+    geometry_msgs::Quaternion q = spose.pose.orientation;
+    tf::Quaternion quat(q.x, q.y, q.z, q.w);
+    tf::Matrix3x3 mat(quat);
+    double roll, pitch, yaw;
+    mat.getRPY(roll, pitch, yaw);
+    pose.a = yaw;
+
+    //Send the values to stage
+    stage_->setModelPose(it->first, pose);
+  }
 }
 
 void ObjectServer::executeCreate(const stage_ros::createGoalConstPtr& goal)
 {
   stage_ros::createResult res;
 
-  Stg::Model *model = new Stg::ModelPosition(stage_->world, NULL, "tmp");
+  // TODO create object with respect to yaml configuration, otherwise error!
+
+  Stg::Model *model = new Stg::ModelPosition(stage_->world, NULL, goal->type);
   model->SetColor(Stg::Color::blue);
   Stg::Geom geom;
   geom.size.x = 0.8;
@@ -44,26 +79,15 @@ void ObjectServer::executeMove(const stage_ros::moveGoalConstPtr& goal)
 {
   stage_ros::moveResult res;
   std::string id = goal->id;
+
+  if ( objects_.find(id) == objects_.end() )
+  {
+    //not found
+    res.response = -2;
+    move_action_server_.setAborted(res);
+  }
+
   objects_[id]->setTrajectory(goal->trajectory);
-
-  //Get latest pose value (by time)
-  geometry_msgs::PoseStamped spose = objects_[id]->getPose(ros::Time::now());
-
-  //Set Coordinates
-  Stg::Pose pose;
-  pose.x = spose.pose.position.x;
-  pose.y = spose.pose.position.y;
-
-  //Calculate rotation
-  geometry_msgs::Quaternion q = spose.pose.orientation;
-  tf::Quaternion quat(q.x, q.y, q.z, q.w);
-  tf::Matrix3x3 mat(quat);
-  double roll, pitch, yaw;
-  mat.getRPY(roll, pitch, yaw);
-  pose.a = yaw;
-
-  //Send the values to stage
-  stage_->setModelPose(id, pose);
   res.response = 0;
 
   move_action_server_.setSucceeded(res);
