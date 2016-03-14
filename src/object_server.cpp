@@ -83,8 +83,18 @@ void ObjectServer::executeMove(const stage_ros::moveGoalConstPtr& goal)
   if ( objects_.find(id) == objects_.end() )
   {
     //not found
+    ROS_ERROR_STREAM("ObjectServer::executeMove: Could not find id: " << id);
     res.response = -2;
     move_action_server_.setAborted(res);
+    return;
+  }
+
+  if (goal->trajectory.size() == 0)
+  {
+    ROS_ERROR_STREAM("ObjectServer::executeMove: The trajectory size is zero");
+    res.response = -3;
+    move_action_server_.setAborted(res);
+    return;
   }
 
   objects_[id]->setTrajectory(goal->trajectory);
