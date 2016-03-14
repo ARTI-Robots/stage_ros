@@ -68,6 +68,12 @@ void ObjectServer::executeCreate(const stage_ros::createGoalConstPtr& goal)
   geom.size.z = 0.3;
   model->SetGeom(geom);
   std::string id = stage_->addModel(model);
+  Stg::Pose pose;
+  pose.x = 0.;
+  pose.y = 0.;
+  pose.z = 0.;
+  pose.a = 0.;
+  stage_->setModelPose(id, pose);
   res.id = id;
 
   stage_ros::Object* object = new stage_ros::Object(id, goal->type);
@@ -96,9 +102,16 @@ void ObjectServer::executeMove(const stage_ros::moveGoalConstPtr& goal)
 void ObjectServer::executeRemove(const stage_ros::removeGoalConstPtr& goal)
 {
   stage_ros::removeResult res;
-  std::string name = goal->id;
+  std::string id = goal->id;
 
-  stage_->removeModel(name);
+  if ( objects_.find(id) == objects_.end() )
+  {
+    //not found
+    remove_action_server_.setAborted(res);
+    return;
+  }
+
+  stage_->removeModel(id);
   remove_action_server_.setSucceeded(res);
 }
 

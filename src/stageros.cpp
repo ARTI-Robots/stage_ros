@@ -99,10 +99,10 @@ StageNode::addModel(Stg::Model *model) {
 
 void StageNode::removeModel(const std::string& name)
 {
-
     Stg::Pose pose;
-    pose.x = 1000.0;
-    pose.y = 1000.0;
+    pose.x = 0.0;
+    pose.y = 0.0;
+    pose.a = -NAN;
 
     Stg::Size size;
     size.x = 0.0;
