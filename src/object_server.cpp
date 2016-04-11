@@ -63,9 +63,18 @@ void ObjectServer::executeCreate(const stage_ros::createGoalConstPtr& goal)
   Stg::Model *model = new Stg::Model(stage_->world, NULL, goal->type);
   model->SetColor(Stg::Color::blue);
   Stg::Geom geom;
-  geom.size.x = 0.8;
-  geom.size.y = 0.1;
-  geom.size.z = 0.3;
+  geom.size.x = 1.0;
+  geom.size.y = 1.0;
+  geom.size.z = 1.0;
+
+  if(goal->type == "door")
+  {
+   model->SetColor(Stg::Color::red);
+   geom.size.x = 0.9;
+   geom.size.y = 0.04;
+   geom.size.z = 2.12;
+  }
+
   model->SetGeom(geom);
   std::string id = stage_->addModel(model);
   Stg::Pose pose;
