@@ -73,6 +73,7 @@ private:
         Stg::ModelPosition *positionmodel; //one position
         std::vector<Stg::ModelCamera *> cameramodels; //multiple cameras per position
         std::vector<Stg::ModelRanger *> lasermodels; //multiple rangers per position
+        std::vector<Stg::ModelFiducial *> fiducialmodels; //multiple rangers per position
 
         //ros publishers
         ros::Publisher odom_pub; //one odom
@@ -85,8 +86,8 @@ private:
 
         ros::Subscriber cmdvel_sub; //one cmd_vel subscriber
 
-        ros::Publisher landmarks_with_id_pub_;
-        ros::Publisher landmarks_without_id_pub_;
+        std::vector<ros::Publisher> landmarks_with_id_pubs;
+        std::vector<ros::Publisher> landmarks_without_id_pubs;
 
         ros::Subscriber wheelcmdvel_subs_;
 
