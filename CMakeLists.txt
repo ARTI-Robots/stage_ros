@@ -13,6 +13,7 @@ find_package(catkin REQUIRED
     message_generation
     actionlib
     actionlib_msgs
+    mrpt_msgs
 )
 
 find_package(Boost REQUIRED COMPONENTS system thread)
@@ -21,8 +22,6 @@ find_package(stage REQUIRED)
 
 add_message_files(
   FILES
-  fiducial.msg 
-  fiducials.msg
   WheelCmdVel.msg
 )
 

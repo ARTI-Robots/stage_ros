@@ -29,7 +29,7 @@
 
 #include <tf/transform_broadcaster.h>
 
-#include <stage_ros/fiducials.h>
+#include <mrpt_msgs/ObservationRangeBearing.h>
 #include <stage_ros/object_server.h>
 #include <stage_ros/SetRobotPose.h>
 #include <stage_ros/WheelCmdVel.h>
@@ -42,7 +42,8 @@
 #define BASE_SCAN "base_scan"
 #define BASE_POSE_GROUND_TRUTH "base_pose_ground_truth"
 #define CMD_VEL "cmd_vel"
-#define FIDUCIALS "fiducials"
+#define LANDMARK_WITHOUT_ID "landmarks_without_id"
+#define LANDMARK_WITH_ID "landmarks_with_id"
 #define WHEEL_CMD_VEL "wheel_cmd_vel"
 #define SET_POSE "set_robot_pose"
 
@@ -84,7 +85,8 @@ private:
 
         ros::Subscriber cmdvel_sub; //one cmd_vel subscriber
 
-        ros::Publisher feducual_publisher_;
+        ros::Publisher landmarks_with_id_pub_;
+        ros::Publisher landmarks_without_id_pub_;
 
         ros::Subscriber wheelcmdvel_subs_;
 

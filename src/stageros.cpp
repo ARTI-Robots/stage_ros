@@ -288,8 +288,9 @@ StageNode::SubscribeModels() {
         new_robot->odom_pub = n_.advertise<nav_msgs::Odometry>(mapName(ODOM, r, static_cast<Stg::Model*>(new_robot->positionmodel)), 10);
         new_robot->ground_truth_pub = n_.advertise<nav_msgs::Odometry>(mapName(BASE_POSE_GROUND_TRUTH, r, static_cast<Stg::Model*>(new_robot->positionmodel)), 10);
         new_robot->cmdvel_sub = n_.subscribe<geometry_msgs::Twist>(mapName(CMD_VEL, r, static_cast<Stg::Model*>(new_robot->positionmodel)), 10, boost::bind(&StageNode::cmdvelReceived, this, r, _1));
-        new_robot->feducual_publisher_ = n_.advertise<stage_ros::fiducials>(mapName(FIDUCIALS, r, static_cast<Stg::Model*>(new_robot->positionmodel)), 10);
-        
+        new_robot->landmarks_with_id_pub_ = n_.advertise<mrpt_msgs::ObservationRangeBearing>(mapName(LANDMARK_WITH_ID, r, static_cast<Stg::Model*>(new_robot->positionmodel)), 10);
+        new_robot->landmarks_without_id_pub_ = n_.advertise<mrpt_msgs::ObservationRangeBearing>(mapName(LANDMARK_WITHOUT_ID, r, static_cast<Stg::Model*>(new_robot->positionmodel)), 10);
+
         new_robot->wheelcmdvel_subs_ = n_.subscribe<stage_ros::WheelCmdVel>(mapName(WHEEL_CMD_VEL, r, static_cast<Stg::Model*>(new_robot->positionmodel)), 10, boost::bind(&StageNode::wheelcmdvelCB, this, r, _1));
         
         new_robot->set_robot_pose_srvs_ = n_.advertiseService<stage_ros::SetRobotPose::Request, stage_ros::SetRobotPose::Response>(mapName(SET_POSE, r, static_cast<Stg::Model*>(new_robot->positionmodel)), boost::bind(&StageNode::setRobotPoseCB, this, r, _1, _2));
@@ -303,9 +304,6 @@ StageNode::SubscribeModels() {
         new_robot->cmdvel_sub = n_.subscribe<geometry_msgs::Twist>(
                 mapName(CMD_VEL, r, static_cast<Stg::Model *>(new_robot->positionmodel)), 10,
                 boost::bind(&StageNode::cmdvelReceived, this, r, _1));
-        new_robot->feducual_publisher_ = n_.advertise<stage_ros::fiducials>(
-                mapName(FIDUCIALS, r, static_cast<Stg::Model *>(new_robot->positionmodel)), 10);
-
 
             if (new_robot->lasermodels.size() == 1)
                 new_robot->laser_pubs.push_back(n_.advertise<sensor_msgs::LaserScan>(
@@ -380,19 +378,43 @@ StageNode::WorldCallback() {
 
         if (this->fiducialmodels.size() > r) {
             std::vector<Stg::ModelFiducial::Fiducial> &fiducials = this->fiducialmodels[r]->GetFiducials();
-            stage_ros::fiducials fiducial_msg_to_send;
-            fiducial_msg_to_send.observations.resize(fiducials.size());
+            mrpt_msgs::ObservationRangeBearing landmarks_with_id;
+            mrpt_msgs::ObservationRangeBearing landmarks_without_id;
+
+            landmarks_with_id.sensed_data.resize(fiducials.size());
+            landmarks_without_id.sensed_data.resize(fiducials.size());
+
+            double max_range = 0.;
             for (unsigned int i = 0; i < fiducials.size(); i++) {
-                fiducial_msg_to_send.observations[i].id = fiducials[i].id;
-                fiducial_msg_to_send.observations[i].bearing = fiducials[i].bearing;
-                fiducial_msg_to_send.observations[i].range = fiducials[i].range;
+              landmarks_with_id.sensed_data[i].id = fiducials[i].id;
+              landmarks_with_id.sensed_data[i].yaw = fiducials[i].bearing;
+              landmarks_with_id.sensed_data[i].range = fiducials[i].range;
+
+              landmarks_without_id.sensed_data[i].id = -1;
+              landmarks_without_id.sensed_data[i].yaw = fiducials[i].bearing;
+              landmarks_without_id.sensed_data[i].range = fiducials[i].range;
+
+              if (max_range < fiducials[i].range)
+              {
+                max_range = fiducials[i].range;
+              }
             }
 
             if (fiducials.size() > 0) {
-                fiducial_msg_to_send.header.frame_id = mapName("base_laser_link", r,
+              landmarks_with_id.header.frame_id = mapName("base_laser_link", r,
                                                                static_cast<Stg::Model *>(robotmodel->positionmodel));
-                fiducial_msg_to_send.header.stamp = sim_time;
-                robotmodel->feducual_publisher_.publish(fiducial_msg_to_send);
+              landmarks_with_id.header.stamp = sim_time;
+              landmarks_with_id.max_sensor_distance = max_range + 1.;
+              landmarks_with_id.min_sensor_distance = 0.;
+
+              landmarks_without_id.header.frame_id = mapName("base_laser_link", r,
+                                                          static_cast<Stg::Model *>(robotmodel->positionmodel));
+              landmarks_without_id.header.stamp = sim_time;
+              landmarks_without_id.max_sensor_distance = max_range + 1.;
+              landmarks_without_id.min_sensor_distance = 0.;
+
+              robotmodel->landmarks_with_id_pub_.publish(landmarks_without_id);
+              robotmodel->landmarks_without_id_pub_.publish(landmarks_without_id);
             }
         }
         //loop on the laser devices for the current robot
