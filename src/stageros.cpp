@@ -37,10 +37,10 @@ StageNode::mapName(const char *name, size_t robotID, Stg::Model *mod) const {
         std::size_t found = std::string(((Stg::Ancestor *) mod)->Token()).find(":");
 
         if ((found == std::string::npos) && umn) {
-            snprintf(buf, sizeof(buf), "/%s/%s", ((Stg::Ancestor *) mod)->Token(), name);
+            snprintf(buf, sizeof(buf), "%s/%s", ((Stg::Ancestor *) mod)->Token(), name);
         }
         else {
-            snprintf(buf, sizeof(buf), "/robot_%u/%s", (unsigned int) robotID, name);
+            snprintf(buf, sizeof(buf), "robot_%u/%s", (unsigned int) robotID, name);
         }
 
         return buf;
@@ -59,17 +59,17 @@ StageNode::mapName(const char *name, size_t robotID, size_t deviceID, Stg::Model
         std::size_t found = std::string(((Stg::Ancestor *) mod)->Token()).find(":");
 
         if ((found == std::string::npos) && umn) {
-            snprintf(buf, sizeof(buf), "/%s/%s_%u", ((Stg::Ancestor *) mod)->Token(), name, (unsigned int) deviceID);
+            snprintf(buf, sizeof(buf), "%s/%s_%u", ((Stg::Ancestor *) mod)->Token(), name, (unsigned int) deviceID);
         }
         else {
-            snprintf(buf, sizeof(buf), "/robot_%u/%s_%u", (unsigned int) robotID, name, (unsigned int) deviceID);
+            snprintf(buf, sizeof(buf), "robot_%u/%s_%u", (unsigned int) robotID, name, (unsigned int) deviceID);
         }
 
         return buf;
     }
     else {
         static char buf[100];
-        snprintf(buf, sizeof(buf), "/%s_%u", name, (unsigned int) deviceID);
+        snprintf(buf, sizeof(buf), "%s_%u", name, (unsigned int) deviceID);
         return buf;
     }
 }
