@@ -1,2 +1,4 @@
 build
 .svn
+.idea/
+cmake-build-debug/
