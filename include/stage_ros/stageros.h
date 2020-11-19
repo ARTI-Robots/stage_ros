@@ -104,6 +104,13 @@ private:
 
     bool isDepthCanonical;
     bool use_model_names;
+    std::string fiducial_sensor_frame_;
+    std::string laser_frame_;
+    std::string odom_frame_;
+    std::string base_frame_;
+    std::string base_footprint_frame_;
+    std::string camera_frame_;
+    std::string ground_truth_frame_;
 
     // A helper function that is executed for each stage model.  We use it
     // to search for models of interest.
@@ -118,9 +125,9 @@ private:
 
     // Appends the given robot ID to the given message name.  If omitRobotID
     // is true, an unaltered copy of the name is returned.
-    const char *mapName(const char *name, size_t robotID, Stg::Model *mod) const;
+    std::string mapName(const std::string &name, size_t robotID, Stg::Model *mod) const;
 
-    const char *mapName(const char *name, size_t robotID, size_t deviceID, Stg::Model *mod) const;
+    std::string mapName(const std::string &name, size_t robotID, size_t deviceID, Stg::Model *mod) const;
 
     tf::TransformBroadcaster tf;
 
